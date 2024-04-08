@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "voicebased3dmodelling"
+version = "0.0.1"
+description = ""
+authors = ["Andrea Esposito <andrea.esposito@uniba.it>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = ">=3.11, <3.12"
+openai = "^1.16.1"
+
+#[tool.poetry.group.dev.dependencies]
+#bpy = "^4.2.0"
+sounddevice = "^0.4.6"
+scipy = "^1.13.0"
+soundfile = "^0.12.1"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
