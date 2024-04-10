@@ -573,7 +573,7 @@ class StartRecording(bpy.types.Operator):
                 return {'CANCELLED'}
 
 
-def generate_blender_code(prompt, chat_history, context, system_prompt):
+def generate_blender_code(prompt, chat_history, context, system_prompt, stream: bool = True):
     messages = [{"role": "system", "content": system_prompt}]
     for message in chat_history[-10:]:
         if not message.type and not message.content:
@@ -591,36 +591,29 @@ def generate_blender_code(prompt, chat_history, context, system_prompt):
     response = client.chat.completions.create(
         model="gpt-4",
         messages=messages,
-        stream=False,
+        stream=stream,
         max_tokens=1500,
     )
-    print(response)
-    completion_text = re.findall(r'```(.*?)```', response.choices[0].message.content, re.DOTALL)[0]
+
+    if not stream:
+        completion_text = re.findall(r'```(.*?)```', response.choices[0].message.content, re.DOTALL)[0]
+        completion_text = re.sub(r'^python', '', completion_text, flags=re.MULTILINE)
+        return completion_text
+
+    collected_events = []
+    completion_text = ''
+    # iterate through the stream of events
+    for event in response:
+        if len(event.choices[0].delta.dict()) == 0:
+            # skip
+            continue
+        if event.choices[0].delta.content is None:
+            continue
+        collected_events.append(event)  # save the event response
+        completion_text += event.choices[0].delta.content
+    completion_text = re.findall(r'```(.*?)```', completion_text, re.DOTALL)[0]
     completion_text = re.sub(r'^python', '', completion_text, flags=re.MULTILINE)
     return completion_text
-
-    # TODO: This was an attempt for streamed responses. This must be completed
-    try:
-        collected_events = []
-        completion_text = ''
-        # iterate through the stream of events
-        for event in response:
-            if event.choices[0].delta.role:
-                # skip
-                continue
-            if len(event.choices[0].delta.dict()) == 0:
-                # skip
-                continue
-            collected_events.append(event)  # save the event response
-            event_text = event.choices[0].delta.content
-            completion_text += event_text  # append the text
-            print(completion_text, flush=True, end='\r')
-        completion_text = re.findall(r'```(.*?)```', completion_text, re.DOTALL)[0]
-        completion_text = re.sub(r'^python', '', completion_text, flags=re.MULTILINE)
-
-        return completion_text
-    except IndexError:
-        return None
 
 
 def menu_func(self, context):
